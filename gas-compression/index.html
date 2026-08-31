@@ -50,31 +50,24 @@
     font-size: clamp(13px, 3.2vw, 15px);
     font-weight: 500;
   }
-  /* mode switch */
-  .seg {
-    display: flex;
-    gap: 6px;
-    background: #eaf1f8;
-    border-radius: 14px;
-    padding: 5px;
-    margin: 10px auto 8px;
-    max-width: 360px;
+  /* small mode radio (secondary, for a quick comparison only) */
+  .mode-mini {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
   }
-  .seg-btn {
-    flex: 1;
-    border: 0;
-    border-radius: 10px;
-    padding: 10px 8px;
-    font-family: inherit;
-    font-size: 16px;
-    font-weight: 700;
-    color: #47617e;
-    background: transparent;
+  .mode-mini label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+  .mode-mini input {
+    width: 14px;
+    height: 14px;
+    margin: 0;
     cursor: pointer;
-    transition: all .18s ease;
+    accent-color: var(--accent);
   }
-  .seg-btn.active[data-mode="gas"] { background: var(--accent); color: #fff; box-shadow: 0 3px 10px rgba(2,132,199,.35); }
-  .seg-btn.active[data-mode="solid"] { background: var(--accent-solid); color: #fff; box-shadow: 0 3px 10px rgba(180,83,9,.35); }
+  body.solid .mode-mini input { accent-color: var(--accent-solid); }
   /* canvas */
   .stage { display: flex; justify-content: center; }
   canvas {
@@ -153,11 +146,6 @@
     <p class="subtitle">اضغط على المكبس (أو اسحبه للأسفل) ولاحظ ماذا يحدث للحجم</p>
   </header>
 
-  <div class="seg" role="tablist" aria-label="اختيار الحالة">
-    <button class="seg-btn active" data-mode="gas" role="tab" aria-selected="true">غاز</button>
-    <button class="seg-btn" data-mode="solid" role="tab" aria-selected="false">مادة صلبة</button>
-  </div>
-
   <div class="stage">
     <canvas id="cv" aria-label="محاكاة وعاء بمكبس يضغط على المادة"></canvas>
   </div>
@@ -170,6 +158,10 @@
       </svg>
       اضغط مع الاستمرار
     </button>
+    <div class="mode-mini" role="radiogroup" aria-label="حالة المادة للمقارنة">
+      <label><input type="radio" name="mode" value="gas" checked> غاز</label>
+      <label><input type="radio" name="mode" value="solid"> صلب</label>
+    </div>
     <button class="reset-btn" id="resetBtn">إعادة</button>
   </div>
 
@@ -473,10 +465,13 @@
   pressBtn.addEventListener("lostpointercapture", endPress);
   pressBtn.addEventListener("contextmenu", e => e.preventDefault());
 
+  const inModeRadio = e => e.target && e.target.closest && e.target.closest(".mode-mini");
   window.addEventListener("keydown", e => {
+    if (inModeRadio(e)) return;
     if (e.code === "Space" || e.code === "ArrowDown") { e.preventDefault(); startPress(); }
   });
   window.addEventListener("keyup", e => {
+    if (inModeRadio(e)) return;
     if (e.code === "Space" || e.code === "ArrowDown") endPress();
   });
   window.addEventListener("blur", () => { endPress(); state.dragging = false; });
@@ -530,13 +525,9 @@
     state.shake = 0;
     if (mode === "gas") initGas();
     document.body.classList.toggle("solid", mode === "solid");
-    document.querySelectorAll(".seg-btn").forEach(b => {
-      const on = b.dataset.mode === mode;
-      b.classList.toggle("active", on);
-      b.setAttribute("aria-selected", on);
-    });
+    document.querySelectorAll('input[name="mode"]').forEach(r => { r.checked = r.value === mode; });
   }
-  document.querySelectorAll(".seg-btn").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener("change", () => setMode(r.value)));
   resetBtn.addEventListener("click", () => setMode(state.mode));
 
   // ---- Main loop ----
