@@ -16,8 +16,6 @@
     --bg: #eef4fa;
     --accent: #0284c7;
     --accent-solid: #b45309;
-    --ok: #059669;
-    --warn: #dc2626;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -131,37 +129,14 @@
     cursor: pointer;
   }
   .reset-btn:hover { background: #f3f7fb; }
-  .volume-badge {
-    background: #f0f7ff;
-    border: 2px solid #cfe6fb;
-    border-radius: 14px;
-    padding: 10px 16px;
-    font-size: 16px;
-    font-weight: 700;
-    color: #0c4a6e;
-    min-width: 128px;
-    text-align: center;
-  }
-  .volume-badge b { font-size: 19px; color: var(--accent); }
-  body.solid .volume-badge { background: #fff8ef; border-color: #f3ddc0; color: #7c3d12; }
-  body.solid .volume-badge b { color: var(--accent-solid); }
   /* explanation */
   .explain {
     border-radius: 14px;
     padding: 12px 16px;
     background: #f0f9ff;
     border-right: 5px solid var(--accent);
-    transition: background .25s, border-color .25s;
-    min-height: 88px;
   }
-  .explain h2 { margin: 0 0 4px; font-size: 16.5px; font-weight: 800; color: #0c4a6e; }
-  .explain p { margin: 0; font-size: 14.5px; line-height: 1.8; color: #33475c; font-weight: 500; }
-  .explain.state-compressed { background: #ecfdf5; border-color: var(--ok); }
-  .explain.state-compressed h2 { color: #065f46; }
-  .explain.state-solid { background: #fffbeb; border-color: var(--accent-solid); }
-  .explain.state-solid h2 { color: #92400e; }
-  .explain.state-blocked { background: #fef2f2; border-color: var(--warn); }
-  .explain.state-blocked h2 { color: #991b1b; }
+  .explain p { margin: 0; font-size: 15px; line-height: 2; color: #33475c; font-weight: 500; }
   footer {
     text-align: center;
     margin-top: 12px;
@@ -196,12 +171,10 @@
       اضغط مع الاستمرار
     </button>
     <button class="reset-btn" id="resetBtn">إعادة</button>
-    <div class="volume-badge">الحجم: <b id="volVal">100٪</b></div>
   </div>
 
-  <div class="explain" id="explain">
-    <h2 id="exTitle"></h2>
-    <p id="exBody"></p>
+  <div class="explain">
+    <p>تتكوّن الغازاتُ من جُسيمات (جُزيئات أو ذرّات) متناهيةٍ في الصِّغر (مهملة الحجم) ومتباعدةٍ جدًّا؛ أي أنّ بينها فراغاتٍ كبيرة؛ ممّا يعني أنّ معظم الحجم الذي يشغلُهُ الغازُ فراغ. وهو ما يفسِّرُ قابليّةَ الغازات للانضغاط بسهولة.</p>
   </div>
 
   <footer>محاكاة تفاعلية — منصة نصيحة التعليمية</footer>
@@ -230,9 +203,8 @@
   const innerW = innerR - innerL;
   const cx = (innerL + innerR) / 2;
 
-  const GAS_REST = 192;               // piston plate bottom edge, gas at 100%
+  const GAS_REST = 192;               // piston plate bottom edge, gas at rest
   const GAS_MAX = 432;                // most compressed position (~35%)
-  const GAS_H0 = innerB - GAS_REST;
 
   // ---- Solid lattice (hexagonal close packing, particles touching) ----
   const SR = 12;                       // solid particle radius
@@ -286,11 +258,6 @@
 
   const restFor = m => (m === "gas" ? GAS_REST : SOLID_REST);
   const maxFor = m => (m === "gas" ? GAS_MAX : SOLID_MAX);
-
-  function volumePercent() {
-    if (state.mode === "solid") return 100;
-    return ((innerB - state.plateBot) / GAS_H0) * 100;
-  }
 
   // ---- Piston motion ----
   function updatePiston(dt) {
@@ -416,15 +383,6 @@
         ctx.fillText("الحجم الأصلي", innerR - 8, GAS_REST + 17);
       }
 
-      // volume % in the middle of the gas column
-      const vol = Math.round(volumePercent());
-      ctx.fillStyle = "rgba(2, 132, 199, 0.30)";
-      ctx.font = "800 46px Tajawal, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(vol + "%", cx, (plateBot + innerB) / 2 + 4);
-      ctx.textBaseline = "alphabetic";
-
       // particles
       for (const p of gas) {
         ctx.beginPath();
@@ -454,16 +412,6 @@
         ctx.fillStyle = "rgba(255,255,255,0.55)";
         ctx.fill();
       }
-      // 100% label on the block
-      ctx.font = "800 46px Tajawal, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = "rgba(255,255,255,0.75)";
-      ctx.strokeText("100%", cx + shakeX, (solidTopY + innerB) / 2);
-      ctx.fillStyle = "rgba(146, 64, 14, 0.85)";
-      ctx.fillText("100%", cx + shakeX, (solidTopY + innerB) / 2);
-      ctx.textBaseline = "alphabetic";
     }
 
     // piston (plate + rod + handle)
@@ -505,50 +453,6 @@
       ctx.fill();
       ctx.fillStyle = "#fff";
       ctx.fillText(msg, bx, by + 2);
-    }
-  }
-
-  // ---- Explanation panel ----
-  const exBox = document.getElementById("explain");
-  const exTitle = document.getElementById("exTitle");
-  const exBody = document.getElementById("exBody");
-  const volVal = document.getElementById("volVal");
-  let lastKey = "";
-
-  function updatePanel() {
-    const vol = volumePercent();
-    volVal.textContent = Math.round(vol) + "٪";
-    let key, title, body, cls;
-    if (state.mode === "gas") {
-      if (vol < 55) {
-        key = "gas-full"; cls = "state-compressed";
-        title = "انضغط الغاز!";
-        body = "عدد الجسيمات لم يتغيّر، لكن الفراغات الكبيرة بينها قلّت كثيرًا فقلّ الحجم. لهذا الغازات قابلة للانضغاط. أفلت الزر ولاحظ كيف يدفع الغازُ المكبسَ للأعلى من جديد.";
-      } else if (vol < 97) {
-        key = "gas-part"; cls = "state-compressed";
-        title = "الحجم يتناقص…";
-        body = "المكبس يقترب والجسيمات تتزاحم في حجم أصغر. استمر بالضغط ولاحظ كم يمكن أن يقلّ الحجم!";
-      } else {
-        key = "gas-idle"; cls = "";
-        title = "الغاز: جسيمات متباعدة وفراغات كبيرة";
-        body = "جسيمات الغاز تتحرك بسرعة في جميع الاتجاهات، والمسافات بينها كبيرة جدًا. اضغط على المكبس وراقب الحجم.";
-      }
-    } else {
-      if (state.shake > 0.4) {
-        key = "solid-press"; cls = "state-blocked";
-        title = "المادة الصلبة لا تنضغط!";
-        body = "مهما ضغطت يبقى الحجم 100٪ تقريبًا، لأن الجسيمات متراصّة ومتلاصقة ولا توجد بينها فراغات كافية لتقترب أكثر من ذلك.";
-      } else {
-        key = "solid-idle"; cls = "state-solid";
-        title = "المادة الصلبة: جسيمات متراصّة";
-        body = "الجسيمات مرتّبة بانتظام ومتلاصقة، وتهتز في أماكنها فقط دون أن تنتقل. جرّب الضغط على المكبس وشاهد ماذا يحدث.";
-      }
-    }
-    if (key !== lastKey) {
-      lastKey = key;
-      exTitle.textContent = title;
-      exBody.textContent = body;
-      exBox.className = "explain " + cls;
     }
   }
 
@@ -631,8 +535,6 @@
       b.classList.toggle("active", on);
       b.setAttribute("aria-selected", on);
     });
-    lastKey = "";
-    updatePanel();
   }
   document.querySelectorAll(".seg-btn").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
   resetBtn.addEventListener("click", () => setMode(state.mode));
@@ -646,7 +548,6 @@
     const pv = updatePiston(dt);
     if (state.mode === "gas") updateGas(dt, pv);
     draw(t);
-    updatePanel();
     requestAnimationFrame(frame);
   }
   setMode("gas");
