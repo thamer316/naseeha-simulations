@@ -269,6 +269,7 @@
         hue: 195 + Math.random() * 25,
       });
     }
+    window.__gas = gas; // debug/inspection hook
   }
   initGas();
 
@@ -327,17 +328,27 @@
   }
 
   // ---- Gas physics ----
+  // Reflect with random scatter: keeps the speed but redistributes the
+  // direction, so repeated piston hits don't leave the motion purely vertical
+  // (there are no particle-particle collisions to re-randomize it otherwise).
+  function scatterBounce(p, nx, ny, extra) {
+    const sp = Math.min(200, Math.max(45, Math.hypot(p.vx, p.vy)) + extra);
+    const ang = Math.atan2(ny, nx) + (Math.random() - 0.5) * 2.5;
+    p.vx = Math.cos(ang) * sp;
+    p.vy = Math.sin(ang) * sp;
+  }
+
   function updateGas(dt, pistonVel) {
     const top = state.plateBot;
     for (const p of gas) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      if (p.x < innerL + GR) { p.x = innerL + GR; p.vx = Math.abs(p.vx); }
-      if (p.x > innerR - GR) { p.x = innerR - GR; p.vx = -Math.abs(p.vx); }
-      if (p.y > innerB - GR) { p.y = innerB - GR; p.vy = -Math.abs(p.vy); }
+      if (p.x < innerL + GR) { p.x = innerL + GR; scatterBounce(p, 1, 0, 0); }
+      if (p.x > innerR - GR) { p.x = innerR - GR; scatterBounce(p, -1, 0, 0); }
+      if (p.y > innerB - GR) { p.y = innerB - GR; scatterBounce(p, 0, -1, 0); }
       if (p.y < top + GR) {
         p.y = top + GR;
-        p.vy = Math.abs(p.vy) + Math.max(0, pistonVel) * 0.35; // piston does work on the gas
+        scatterBounce(p, 0, 1, Math.max(0, pistonVel) * 0.35); // piston does work on the gas
       }
       // keep speeds in a sensible range
       const sp = Math.hypot(p.vx, p.vy);
