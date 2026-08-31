@@ -185,7 +185,7 @@
   // ---- Geometry ----
   const CX = 280, CY = 310, R = 245;   // circular container (top area of the canvas)
   const RIN = R - 2;                   // physics boundary (inside the stroke)
-  const PR = 19, N = 16;               // particle radius / count
+  const PR = 16, N = 16;               // particle radius / count
   const FLAME_Y = 662;                 // flame base line (on the burner bar)
 
   // ---- State ----
@@ -257,12 +257,12 @@
     for (const p of parts) wallBounce(p);
     // thermostat: each speed relaxes toward its temperature target, while
     // collisions keep redistributing energy so the spread stays random
-    // (max heat pushes the mean speed to ~4x the cold baseline)
+    // (max heat pushes the mean speed to ~5x the cold baseline)
     for (const p of parts) {
       const sp = Math.hypot(p.vx, p.vy) || 1;
-      const tgt = (62 + 175 * state.T) * p.wob;
-      let ns = sp + (tgt - sp) * Math.min(1, dt * 1.6);
-      ns = Math.max(28, Math.min(320, ns));
+      const tgt = (62 + 250 * state.T) * p.wob;
+      let ns = sp + (tgt - sp) * Math.min(1, dt * 2);
+      ns = Math.max(28, Math.min(380, ns));
       p.vx *= ns / sp;
       p.vy *= ns / sp;
     }
@@ -436,7 +436,9 @@
   // ---- Main loop ----
   let last = performance.now();
   function frame(now) {
-    const dt = Math.min((now - last) / 1000, 0.05);
+    // dt clamped low enough that even two top-speed particles cannot
+    // tunnel through each other in a single laggy frame
+    const dt = Math.min((now - last) / 1000, 0.033);
     last = now;
     const t = now / 1000;
     calloutTimer = Math.max(0, calloutTimer - dt);
