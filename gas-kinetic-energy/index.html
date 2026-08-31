@@ -251,18 +251,26 @@
   }
 
   function update(dt) {
-    for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; }
-    for (let i = 0; i < parts.length; i++)
-      for (let j = i + 1; j < parts.length; j++) collide(parts[i], parts[j]);
-    for (const p of parts) wallBounce(p);
+    // substeps keep the fastest particle under ~8px per step, so collisions
+    // stay exact even at the extreme top speeds reached when fully heated
+    let vmax = 0;
+    for (const p of parts) { const s = Math.hypot(p.vx, p.vy); if (s > vmax) vmax = s; }
+    const nsub = Math.max(1, Math.ceil(vmax * dt / 8));
+    const h = dt / nsub;
+    for (let s = 0; s < nsub; s++) {
+      for (const p of parts) { p.x += p.vx * h; p.y += p.vy * h; }
+      for (let i = 0; i < parts.length; i++)
+        for (let j = i + 1; j < parts.length; j++) collide(parts[i], parts[j]);
+      for (const p of parts) wallBounce(p);
+    }
     // thermostat: each speed relaxes toward its temperature target, while
     // collisions keep redistributing energy so the spread stays random
-    // (max heat pushes the mean speed to ~5x the cold baseline)
+    // (max heat pushes the mean speed to ~9x the cold baseline)
     for (const p of parts) {
       const sp = Math.hypot(p.vx, p.vy) || 1;
-      const tgt = (62 + 250 * state.T) * p.wob;
+      const tgt = (62 + 485 * state.T) * p.wob;
       let ns = sp + (tgt - sp) * Math.min(1, dt * 2);
-      ns = Math.max(28, Math.min(380, ns));
+      ns = Math.max(28, Math.min(750, ns));
       p.vx *= ns / sp;
       p.vy *= ns / sp;
     }
