@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>التصادم المرن لجسيمات الغاز</title>
+<meta name="description" content="محاكاة توضح تصادم جسيمات الغاز في ما بينها ومع جدار الإناء تصادمًا مرنًا يبقى فيه مجموع الطاقة الحركية ثابتًا">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1e293b;
+    --muted: #64748b;
+    --card: #ffffff;
+    --accent: #0284c7;
+  }
+  * { box-sizing: border-box; }
+  /* no inner scrollbar: the page is embedded in an iframe and the host site scrolls */
+  html, body { margin: 0; padding: 0; overflow: hidden; }
+  body {
+    font-family: "Tajawal", "Segoe UI", Tahoma, Arial, sans-serif;
+    background: linear-gradient(160deg, #eef4fa 0%, #e3edf7 100%);
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    padding: 10px 10px 12px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .card {
+    width: 100%;
+    max-width: 540px;
+    background: var(--card);
+    border-radius: 20px;
+    box-shadow: 0 10px 34px rgba(15, 46, 82, 0.12);
+    padding: 18px 18px 14px;
+  }
+  header { text-align: center; margin-bottom: 6px; }
+  h1 {
+    margin: 0;
+    font-size: clamp(20px, 4.6vw, 27px);
+    font-weight: 800;
+    color: #0f2e52;
+  }
+  .stage { display: flex; justify-content: center; }
+  canvas {
+    width: 100%;
+    max-width: 430px;
+    height: auto;
+    display: block;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .explain {
+    border-radius: 14px;
+    padding: 12px 16px;
+    background: #f0f9ff;
+    border-right: 5px solid var(--accent);
+    margin-top: 6px;
+  }
+  .explain p { margin: 0; font-size: 15px; line-height: 2; color: #33475c; font-weight: 500; }
+  .explain strong { color: #1e3a5f; }
+  footer {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <header>
+    <h1>التصادمُ المَرِنُ لِجُسيمات الغاز</h1>
+  </header>
+
+  <div class="stage">
+    <canvas id="cv" role="img" aria-label="جسيمات غاز داخل إناء دائري تتصادم في ما بينها ومع جدار الإناء تصادمًا مرنًا، ومع كل جسيم سهم يبين اتجاه حركته"></canvas>
+  </div>
+
+  <div class="explain">
+    <p>تتصادمُ جُسَيمات الغاز في ما بينها، كما تتصادمُ معَ جدار الإناء الموجودة فيه <strong>تصادمًا مَرِنًا Elastic Collision</strong>؛ ويكون التصادم مرنًا عندما يبقى مجموع الطاقة الحركية للجسيمات ثابت، فالطاقة التي يفقدها أحد الجسيمات يكسبها جسيم آخر عند درجة الحرارة نفسها.</p>
+  </div>
+
+  <footer>محاكاة تعليمية — منصة النصيحة التعليمية</footer>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  const cv = document.getElementById("cv");
+  const ctx = cv.getContext("2d");
+  const W = 560, H = 560;
+
+  function fitCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    cv.width = W * dpr;
+    cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  fitCanvas();
+  window.addEventListener("resize", fitCanvas);
+
+  // ---- Geometry ----
+  const CX = 280, CY = 280, R = 250;   // circular container
+  const RIN = R - 2;                   // physics boundary (inside the stroke)
+  const PR = 19, N = 16;               // particle radius / count
+
+  // ---- Particles: random non-overlapping start, random directions ----
+  const parts = [];
+  let guard = 0;
+  while (parts.length < N && guard++ < 5000) {
+    const a = Math.random() * Math.PI * 2;
+    const d = Math.sqrt(Math.random()) * (RIN - PR - 8);
+    const x = CX + Math.cos(a) * d, y = CY + Math.sin(a) * d;
+    if (parts.some(p => Math.hypot(p.x - x, p.y - y) < PR * 2 + 10)) continue;
+    const dir = Math.random() * Math.PI * 2;
+    const sp = 60 + Math.random() * 70;
+    parts.push({ x, y, vx: Math.cos(dir) * sp, vy: Math.sin(dir) * sp });
+  }
+
+  // ---- Physics: straight lines between elastic collisions ----
+  function wallBounce(p) {
+    const dx = p.x - CX, dy = p.y - CY;
+    const d = Math.hypot(dx, dy), lim = RIN - PR;
+    if (d < lim || d === 0) return;
+    const nx = dx / d, ny = dy / d;
+    p.x = CX + nx * lim;
+    p.y = CY + ny * lim;
+    const dot = p.vx * nx + p.vy * ny;
+    if (dot <= 0) return;
+    p.vx -= 2 * dot * nx;
+    p.vy -= 2 * dot * ny;
+    // tiny random scatter at the wall keeps directions varied (speed unchanged)
+    const sp = Math.hypot(p.vx, p.vy);
+    const ang = Math.atan2(p.vy, p.vx) + (Math.random() - 0.5) * 0.4;
+    p.vx = Math.cos(ang) * sp;
+    p.vy = Math.sin(ang) * sp;
+  }
+
+  function collide(a, b) {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const d = Math.hypot(dx, dy);
+    if (d === 0 || d >= PR * 2) return;
+    const nx = dx / d, ny = dy / d;
+    const push = (PR * 2 - d) / 2;
+    a.x -= nx * push; a.y -= ny * push;
+    b.x += nx * push; b.y += ny * push;
+    const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+    if (rel >= 0) return;
+    // equal masses: exchange the normal velocity components
+    a.vx += rel * nx; a.vy += rel * ny;
+    b.vx -= rel * nx; b.vy -= rel * ny;
+  }
+
+  function update(dt) {
+    for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; }
+    for (let i = 0; i < parts.length; i++)
+      for (let j = i + 1; j < parts.length; j++) collide(parts[i], parts[j]);
+    for (const p of parts) wallBounce(p);
+  }
+
+  // ---- Drawing ----
+  function drawBall(x, y) {
+    const g = ctx.createRadialGradient(x - PR * 0.35, y - PR * 0.4, PR * 0.15, x, y, PR);
+    g.addColorStop(0, "#fdeffb");
+    g.addColorStop(0.4, "#eebbe7");
+    g.addColorStop(0.8, "#d893d1");
+    g.addColorStop(1, "#c07cbb");
+    ctx.beginPath();
+    ctx.arc(x, y, PR, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = "rgba(146, 84, 140, 0.45)";
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x - PR * 0.38, y - PR * 0.44, PR * 0.22, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+    ctx.fill();
+  }
+
+  function drawArrow(p) {
+    const sp = Math.hypot(p.vx, p.vy);
+    if (sp === 0) return;
+    const ux = p.vx / sp, uy = p.vy / sp;
+    const from = PR + 3;
+    const len = 16 + sp * 0.22;          // faster particle -> longer arrow
+    const x1 = p.x + ux * (from + len), y1 = p.y + uy * (from + len);
+    const hl = 9, hw = 4.5;              // arrowhead length / half-width
+    ctx.strokeStyle = "#1f1f1f";
+    ctx.fillStyle = "#1f1f1f";
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(p.x + ux * from, p.y + uy * from);
+    ctx.lineTo(x1 - ux * hl, y1 - uy * hl);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x1 - ux * hl - uy * hw, y1 - uy * hl + ux * hw);
+    ctx.lineTo(x1 - ux * hl + uy * hw, y1 - uy * hl - ux * hw);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    // container
+    ctx.beginPath();
+    ctx.arc(CX, CY, R, 0, Math.PI * 2);
+    ctx.fillStyle = "#f0f0ee";
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#a3a9b1";
+    ctx.stroke();
+    // clip to the interior so arrows never poke through the wall
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(CX, CY, R - 1.5, 0, Math.PI * 2);
+    ctx.clip();
+    for (const p of parts) drawBall(p.x, p.y);
+    for (const p of parts) drawArrow(p);
+    ctx.restore();
+  }
+
+  // ---- Main loop ----
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min((now - last) / 1000, 0.05);
+    last = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
