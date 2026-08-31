@@ -528,7 +528,7 @@
     document.querySelectorAll('input[name="mode"]').forEach(r => { r.checked = r.value === mode; });
   }
   document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener("change", () => setMode(r.value)));
-  resetBtn.addEventListener("click", () => setMode(state.mode));
+  resetBtn.addEventListener("click", () => setMode("gas"));
 
   // ---- Main loop ----
   let last = performance.now();
