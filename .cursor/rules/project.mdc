@@ -1,0 +1,46 @@
+---
+description: هوية مشروع محاكيات نصيحة وقواعد إضافة المحاكيات ونشرها
+alwaysApply: true
+---
+
+# محاكيات نصيحة التفاعلية
+
+محاكيات تعليمية قصيرة تُعرض للطلاب داخل دروس موقع الدورات
+(naseehamath.com) عبر `iframe`. الاستضافة على GitHub Pages من مستودع
+`thamer316/naseeha-sims` (اسم المجلد المحلي مختلف — لا تغيّر الريموت).
+
+## البنية
+
+- لكل محاكاة مجلد خاص فيه `index.html` واحد مستقل بذاته.
+- `index.html` بالجذر: صفحة فهرس ببطاقات — أضف بطاقة لكل محاكاة جديدة.
+- حدّث جدول المحاكيات في `README.md` عند الإضافة.
+
+## قواعد أي محاكاة جديدة
+
+- ملف HTML واحد: CSS و JavaScript مضمّنان، بلا اعتماديات خارجية
+  (يُستثنى خط Tajawal من Google Fonts).
+- عربية بالكامل مع `dir="rtl"`، رسم بـ Canvas 2D و `requestAnimationFrame`.
+- تدعم اللمس والفأرة معاً (Pointer Events مع `touch-action: none`)
+  ولوحة المفاتيح حيث يناسب، وتصميم متجاوب يعمل داخل iframe بعرض جوال.
+- واجهة تشرح الفكرة العلمية بنص يتغير مع حالة المحاكاة، وزر «إعادة».
+
+## الاختبار والنشر
+
+1. اختبر محلياً: `python -m http.server 8734` من جذر المشروع ثم افتح
+   `http://127.0.0.1:8734/<sim-folder>/` (روابط file:// لا تعمل في متصفح IDE).
+   أوقف خادم python نفسه بعد الانتهاء (قتل غلاف PowerShell لا يكفي).
+2. commit إلى `main` ثم push — تنشر GitHub Pages تلقائياً (build_type: legacy).
+3. تحقق من اكتمال النشر:
+   `gh api repos/thamer316/naseeha-sims/pages/builds/latest` حتى `status: built`
+   (على أجهزة بلا gh على PATH استخدم نسخة gh.exe محلية إنوجدت).
+4. الرابط الحي: `https://thamer316.github.io/naseeha-sims/<sim-folder>/`.
+5. سلّم المستخدم كود التضمين الجاهز:
+
+```html
+<iframe src="https://thamer316.github.io/naseeha-sims/<sim-folder>/"
+        style="width:100%;max-width:680px;height:900px;border:0;display:block;margin:auto;"
+        loading="lazy" title="<عنوان المحاكاة>"></iframe>
+```
+
+التضمين يتم يدوياً في محرر naseehamath.com (وضع الكود `</>`) — المنصة
+خارجية ولا نملك كودها، فلا تحاول نشر شيء إليها.
