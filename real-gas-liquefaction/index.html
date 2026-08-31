@@ -618,7 +618,7 @@
   function drawHint(t) {
     if (state.hasDragged) state.hintAlpha = Math.max(0, state.hintAlpha - 0.08);
     if (state.hintAlpha <= 0.01) return;
-    const msg = "اسحب المكبس";
+    const msg = "حرك المكبس";
     ctx.font = "700 14px Tajawal, sans-serif";
     ctx.textAlign = "center";
     const wTxt = ctx.measureText(msg).width;
