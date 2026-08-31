@@ -447,9 +447,9 @@
 
     // state callouts: red for the rigid solid, green once the gas visibly shrinks
     if (state.mode === "solid" && state.shake > 0.55) {
-      drawCallout("لا ينضغط!", "#dc2626");
+      drawCallout("غير قابل للانضغاط", "#dc2626");
     } else if (state.mode === "gas" && (plateBot - GAS_REST) / (GAS_MAX - GAS_REST) > 0.4) {
-      drawCallout("ينضغط بسهولة!", "#059669");
+      drawCallout("قابل للانضغاط بسهولة", "#059669");
     }
   }
 
