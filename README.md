@@ -7,14 +7,14 @@
 
 | المحاكاة | المسار | الوصف |
 | --- | --- | --- |
-| هل يمكن ضغط المادة؟ | `gas-compression/` | وعاء بمكبس: الغاز ينضغط لأن بين جسيماته فراغات كبيرة، والمادة الصلبة المتراصّة لا تنضغط |
+| قابلية الغازات للانضغاط | `gas-compression/` | وعاء بمكبس: الغاز ينضغط لأن بين جسيماته فراغات كبيرة، والمادة الصلبة المتراصّة لا تنضغط |
 
 ## الاستخدام داخل درس
 
 ```html
 <iframe src="https://thamer316.github.io/naseeha-simulations/gas-compression/"
-        style="width:100%;max-width:680px;height:840px;border:0;display:block;margin:auto;"
-        loading="lazy" title="محاكاة قابلية الانضغاط"></iframe>
+        style="width:100%;max-width:680px;height:900px;border:0;display:block;margin:auto;"
+        loading="lazy" scrolling="no" title="محاكاة قابلية الغازات للانضغاط"></iframe>
 ```
 
 ## إضافة محاكاة جديدة
