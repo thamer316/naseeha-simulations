@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>متوسط الطاقة الحركية ودرجة الحرارة — محاكاة تفاعلية</title>
+<meta name="description" content="محاكاة تفاعلية توضح اعتماد متوسط الطاقة الحركية لجسيمات الغاز على سرعتها التي تزداد بزيادة درجة الحرارة">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1e293b;
+    --muted: #64748b;
+    --card: #ffffff;
+    --accent: #0284c7;
+  }
+  * { box-sizing: border-box; }
+  /* no inner scrollbar: the page is embedded in an iframe and the host site scrolls */
+  html, body { margin: 0; padding: 0; overflow: hidden; }
+  body {
+    font-family: "Tajawal", "Segoe UI", Tahoma, Arial, sans-serif;
+    background: linear-gradient(160deg, #eef4fa 0%, #e3edf7 100%);
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    padding: 10px 10px 12px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .card {
+    width: 100%;
+    max-width: 540px;
+    background: var(--card);
+    border-radius: 20px;
+    box-shadow: 0 10px 34px rgba(15, 46, 82, 0.12);
+    padding: 18px 18px 14px;
+  }
+  header { text-align: center; margin-bottom: 6px; }
+  h1 {
+    margin: 0;
+    font-size: clamp(20px, 4.6vw, 27px);
+    font-weight: 800;
+    color: #0f2e52;
+  }
+  .stage { display: flex; justify-content: center; }
+  canvas {
+    width: 100%;
+    max-width: 430px;
+    height: auto;
+    display: block;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  /* controls: temperature slider + reset */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px 14px;
+    margin: 8px 0 10px;
+  }
+  .temp-wrap { display: flex; align-items: center; gap: 10px; }
+  .t-label { font-size: 14px; font-weight: 800; }
+  .t-label.hot { color: #dc2626; }
+  .t-label.cold { color: #2563eb; }
+  #tempSlider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: min(250px, 55vw);
+    height: 30px;
+    background: transparent;
+    cursor: pointer;
+    touch-action: none;
+  }
+  #tempSlider::-webkit-slider-runnable-track {
+    height: 10px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #60a5fa 0%, #bfdbfe 40%, #fecaca 75%, #f87171 100%);
+  }
+  #tempSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid var(--accent);
+    margin-top: -8px;
+    box-shadow: 0 2px 6px rgba(15, 46, 82, 0.25);
+  }
+  #tempSlider::-moz-range-track {
+    height: 10px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #60a5fa 0%, #bfdbfe 40%, #fecaca 75%, #f87171 100%);
+  }
+  #tempSlider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid var(--accent);
+    box-shadow: 0 2px 6px rgba(15, 46, 82, 0.25);
+  }
+  .reset-btn {
+    border: 2px solid #cbd8e6;
+    background: #fff;
+    color: #47617e;
+    border-radius: 14px;
+    padding: 11px 18px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .reset-btn:hover { background: #f3f7fb; }
+  /* explanation */
+  .explain {
+    border-radius: 14px;
+    padding: 12px 16px;
+    background: #f0f9ff;
+    border-right: 5px solid var(--accent);
+  }
+  .explain p { margin: 0; font-size: 15px; line-height: 2; color: #33475c; font-weight: 500; }
+  /* small blue square bullet, like the textbook figure */
+  .sq {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border-radius: 2px;
+    background: #2e6db4;
+    margin-left: 9px;
+  }
+  footer {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <header>
+    <h1>متوسِّطُ الطاقةِ الحركيّةِ ودرجةُ الحرارة</h1>
+  </header>
+
+  <div class="stage">
+    <canvas id="cv" aria-label="جسيمات غاز داخل إناء دائري فوق لهب؛ عند رفع درجة الحرارة يكبر اللهب وتزداد سرعة الجسيمات وتطول أسهمها"></canvas>
+  </div>
+
+  <div class="controls">
+    <div class="temp-wrap">
+      <span class="t-label hot">ساخن</span>
+      <input type="range" id="tempSlider" dir="ltr" min="0" max="100" value="0" aria-label="درجة الحرارة">
+      <span class="t-label cold">بارد</span>
+    </div>
+    <button class="reset-btn" id="resetBtn">إعادة</button>
+  </div>
+
+  <div class="explain">
+    <p><span class="sq" aria-hidden="true"></span>يعتمدُ متوسِّطُ الطاقة الحركيّة لِجُسيمات الغاز على سرعتها التي تزدادُ بزيادة درجة الحرارة.</p>
+  </div>
+
+  <footer>محاكاة تعليمية — منصة النصيحة التعليمية</footer>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  const cv = document.getElementById("cv");
+  const ctx = cv.getContext("2d");
+  const W = 560, H = 690;
+
+  function fitCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    cv.width = W * dpr;
+    cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  fitCanvas();
+  window.addEventListener("resize", fitCanvas);
+
+  // ---- Geometry ----
+  const CX = 280, CY = 310, R = 245;   // circular container (top area of the canvas)
+  const RIN = R - 2;                   // physics boundary (inside the stroke)
+  const PR = 19, N = 16;               // particle radius / count
+  const FLAME_Y = 662;                 // flame base line (on the burner bar)
+
+  // ---- State ----
+  const state = { T: 0 };              // temperature 0..1 (slider)
+  let dispT = 0;                       // eased T that drives the flame visuals
+  let calloutTimer = 0;                // green callout visibility countdown
+
+  // ---- Particles: random non-overlapping start, random directions ----
+  // Speeds start lower than in gas-random-motion so arrows have room to grow.
+  const parts = [];
+  function initParts() {
+    parts.length = 0;
+    let guard = 0;
+    while (parts.length < N && guard++ < 5000) {
+      const a = Math.random() * Math.PI * 2;
+      const d = Math.sqrt(Math.random()) * (RIN - PR - 8);
+      const x = CX + Math.cos(a) * d, y = CY + Math.sin(a) * d;
+      if (parts.some(p => Math.hypot(p.x - x, p.y - y) < PR * 2 + 10)) continue;
+      const dir = Math.random() * Math.PI * 2;
+      const sp = 40 + Math.random() * 45;
+      parts.push({
+        x, y,
+        vx: Math.cos(dir) * sp,
+        vy: Math.sin(dir) * sp,
+        wob: 0.72 + Math.random() * 0.56,   // per-particle spread so speeds never equalize
+      });
+    }
+  }
+  initParts();
+
+  // ---- Physics: straight lines between elastic collisions ----
+  function wallBounce(p) {
+    const dx = p.x - CX, dy = p.y - CY;
+    const d = Math.hypot(dx, dy), lim = RIN - PR;
+    if (d < lim || d === 0) return;
+    const nx = dx / d, ny = dy / d;
+    p.x = CX + nx * lim;
+    p.y = CY + ny * lim;
+    const dot = p.vx * nx + p.vy * ny;
+    if (dot <= 0) return;
+    p.vx -= 2 * dot * nx;
+    p.vy -= 2 * dot * ny;
+    // tiny random scatter at the wall keeps directions varied (speed unchanged)
+    const sp = Math.hypot(p.vx, p.vy);
+    const ang = Math.atan2(p.vy, p.vx) + (Math.random() - 0.5) * 0.4;
+    p.vx = Math.cos(ang) * sp;
+    p.vy = Math.sin(ang) * sp;
+  }
+
+  function collide(a, b) {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const d = Math.hypot(dx, dy);
+    if (d === 0 || d >= PR * 2) return;
+    const nx = dx / d, ny = dy / d;
+    const push = (PR * 2 - d) / 2;
+    a.x -= nx * push; a.y -= ny * push;
+    b.x += nx * push; b.y += ny * push;
+    const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+    if (rel >= 0) return;
+    // equal masses: exchange the normal velocity components
+    a.vx += rel * nx; a.vy += rel * ny;
+    b.vx -= rel * nx; b.vy -= rel * ny;
+  }
+
+  function update(dt) {
+    for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; }
+    for (let i = 0; i < parts.length; i++)
+      for (let j = i + 1; j < parts.length; j++) collide(parts[i], parts[j]);
+    for (const p of parts) wallBounce(p);
+    // thermostat: each speed relaxes gently toward its temperature target, while
+    // collisions keep redistributing energy so the spread stays random
+    for (const p of parts) {
+      const sp = Math.hypot(p.vx, p.vy) || 1;
+      const tgt = (62 + 92 * state.T) * p.wob;
+      let ns = sp + (tgt - sp) * Math.min(1, dt * 1.1);
+      ns = Math.max(28, Math.min(215, ns));
+      p.vx *= ns / sp;
+      p.vy *= ns / sp;
+    }
+  }
+
+  // ---- Drawing helpers ----
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawBall(x, y) {
+    const g = ctx.createRadialGradient(x - PR * 0.35, y - PR * 0.4, PR * 0.15, x, y, PR);
+    g.addColorStop(0, "#fdeffb");
+    g.addColorStop(0.4, "#eebbe7");
+    g.addColorStop(0.8, "#d893d1");
+    g.addColorStop(1, "#c07cbb");
+    ctx.beginPath();
+    ctx.arc(x, y, PR, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = "rgba(146, 84, 140, 0.45)";
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x - PR * 0.38, y - PR * 0.44, PR * 0.22, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+    ctx.fill();
+  }
+
+  function drawArrow(p) {
+    const sp = Math.hypot(p.vx, p.vy);
+    if (sp === 0) return;
+    const ux = p.vx / sp, uy = p.vy / sp;
+    const from = PR + 3;
+    const len = 16 + sp * 0.22;          // faster particle -> longer arrow
+    const x1 = p.x + ux * (from + len), y1 = p.y + uy * (from + len);
+    const hl = 9, hw = 4.5;              // arrowhead length / half-width
+    ctx.strokeStyle = "#1f1f1f";
+    ctx.fillStyle = "#1f1f1f";
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(p.x + ux * from, p.y + uy * from);
+    ctx.lineTo(x1 - ux * hl, y1 - uy * hl);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x1 - ux * hl - uy * hw, y1 - uy * hl + ux * hw);
+    ctx.lineTo(x1 - ux * hl + uy * hw, y1 - uy * hl - ux * hw);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // ---- Burner + flame ----
+  function drawBurner() {
+    ctx.fillStyle = "#4b5563";
+    roundRect(CX - 60, 682, 120, 7, 3);
+    ctx.fill();
+    ctx.fillStyle = "#39424e";
+    ctx.fillRect(CX - 12, 671, 24, 12);
+    ctx.fillStyle = "#2b3440";
+    roundRect(CX - 85, 660, 170, 13, 6);
+    ctx.fill();
+    ctx.fillStyle = "#46586c";
+    roundRect(CX - 85, 660, 170, 4.5, 2.5);
+    ctx.fill();
+  }
+
+  function tearDrop(x, baseY, w, h, sway) {
+    ctx.beginPath();
+    ctx.moveTo(x - w / 2, baseY);
+    ctx.bezierCurveTo(x - w / 2, baseY - h * 0.45,
+                      x - w * 0.2 + sway * 0.5, baseY - h * 0.68,
+                      x + sway, baseY - h);
+    ctx.bezierCurveTo(x + w * 0.2 + sway * 0.5, baseY - h * 0.68,
+                      x + w / 2, baseY - h * 0.45,
+                      x + w / 2, baseY);
+    ctx.closePath();
+  }
+
+  const tongues = [
+    { off: -46, hs: 0.60, w: 34, ph: 1.7 },
+    { off: 0,   hs: 1.00, w: 46, ph: 0.0 },
+    { off: 46,  hs: 0.72, w: 36, ph: 3.9 },
+  ];
+
+  function drawFlame(t) {
+    if (dispT < 0.015) return;
+    const mainH = 12 + 96 * dispT;
+    const alpha = Math.min(1, dispT * 7);
+    // warm glow that halos out from behind the vessel
+    const gy = FLAME_Y - mainH * 0.35;
+    const glowR = 60 + 130 * dispT;
+    const g = ctx.createRadialGradient(CX, gy, 8, CX, gy, glowR);
+    g.addColorStop(0, `rgba(251, 146, 60, ${0.30 * dispT})`);
+    g.addColorStop(1, "rgba(251, 146, 60, 0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(CX - glowR, gy - glowR, glowR * 2, glowR * 2);
+    // three flickering tongues, each in three layers
+    for (const tg of tongues) {
+      const flick = 1 + 0.09 * Math.sin(t * 9 + tg.ph * 2.3);
+      const h = mainH * tg.hs * flick;
+      const sway = Math.sin(t * 6.5 + tg.ph) * (2 + 7 * dispT);
+      const w = tg.w * (0.72 + 0.4 * dispT);
+      const x = CX + tg.off * (0.7 + 0.3 * dispT);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = "rgba(249, 115, 22, 0.88)";
+      tearDrop(x, FLAME_Y, w, h, sway);
+      ctx.fill();
+      ctx.fillStyle = "rgba(251, 191, 36, 0.95)";
+      tearDrop(x, FLAME_Y - 2, w * 0.62, h * 0.62, sway * 0.7);
+      ctx.fill();
+      ctx.fillStyle = "#fef9c3";
+      tearDrop(x, FLAME_Y - 3, w * 0.34, h * 0.34, sway * 0.5);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawCallout(msg, color, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = "800 21px Tajawal, sans-serif";
+    ctx.textAlign = "center";
+    const mw = ctx.measureText(msg).width + 30;
+    const bx = CX, by = 38;
+    ctx.fillStyle = color;
+    roundRect(bx - mw / 2, by - 24, mw, 36, 10);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.fillText(msg, bx, by + 2);
+    ctx.restore();
+  }
+
+  function draw(t) {
+    ctx.clearRect(0, 0, W, H);
+    // burner and flame first: the vessel is drawn over them, so the glow
+    // and the tallest tongue tips appear to wrap behind it
+    drawBurner();
+    drawFlame(t);
+    // container
+    ctx.beginPath();
+    ctx.arc(CX, CY, R, 0, Math.PI * 2);
+    ctx.fillStyle = "#f0f0ee";
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#a3a9b1";
+    ctx.stroke();
+    // clip to the interior so arrows never poke through the wall
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(CX, CY, R - 1.5, 0, Math.PI * 2);
+    ctx.clip();
+    for (const p of parts) drawBall(p.x, p.y);
+    for (const p of parts) drawArrow(p);
+    ctx.restore();
+    // green callout only while the temperature is being raised
+    if (calloutTimer > 0) {
+      drawCallout("متوسط الطاقة الحركية يزداد", "#059669", Math.min(1, calloutTimer / 0.35));
+    }
+  }
+
+  // ---- Interaction ----
+  const tempSlider = document.getElementById("tempSlider");
+  const resetBtn = document.getElementById("resetBtn");
+
+  function setT(v) {
+    const nv = Math.min(1, Math.max(0, v));
+    if (nv > state.T + 1e-4) calloutTimer = 1.3;       // heating: show the callout
+    else if (nv < state.T - 1e-4) calloutTimer = 0;    // cooling: hide it immediately
+    state.T = nv;
+    tempSlider.value = String(Math.round(nv * 100));
+  }
+
+  tempSlider.addEventListener("input", () => setT(tempSlider.value / 100));
+
+  resetBtn.addEventListener("click", () => {
+    state.T = 0;
+    dispT = 0;
+    calloutTimer = 0;
+    tempSlider.value = "0";
+    initParts();
+  });
+
+  // arrow keys adjust the temperature too (skip when the slider has focus:
+  // it already handles arrows natively)
+  window.addEventListener("keydown", e => {
+    if (document.activeElement === tempSlider) return;
+    if (e.code === "ArrowUp") { e.preventDefault(); setT(state.T + 0.03); }
+    if (e.code === "ArrowDown") { e.preventDefault(); setT(state.T - 0.03); }
+  });
+
+  // debug/inspection hook
+  window.__sim = { state, parts, setT, callout: () => calloutTimer, dispT: () => dispT };
+
+  // ---- Main loop ----
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min((now - last) / 1000, 0.05);
+    last = now;
+    const t = now / 1000;
+    calloutTimer = Math.max(0, calloutTimer - dt);
+    dispT += (state.T - dispT) * Math.min(1, dt * 5);
+    update(dt);
+    draw(t);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
