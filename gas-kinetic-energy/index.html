@@ -146,7 +146,7 @@
   </header>
 
   <div class="stage">
-    <canvas id="cv" aria-label="جسيمات غاز داخل إناء دائري فوق لهب؛ عند رفع درجة الحرارة يكبر اللهب وتزداد سرعة الجسيمات وتطول أسهمها"></canvas>
+    <canvas id="cv" aria-label="جسيمات غاز داخل إناء دائري فوق لهب؛ عند رفع درجة الحرارة يكبر اللهب وتزداد سرعة الجسيمات"></canvas>
   </div>
 
   <div class="controls">
@@ -255,13 +255,14 @@
     for (let i = 0; i < parts.length; i++)
       for (let j = i + 1; j < parts.length; j++) collide(parts[i], parts[j]);
     for (const p of parts) wallBounce(p);
-    // thermostat: each speed relaxes gently toward its temperature target, while
+    // thermostat: each speed relaxes toward its temperature target, while
     // collisions keep redistributing energy so the spread stays random
+    // (max heat pushes the mean speed to ~4x the cold baseline)
     for (const p of parts) {
       const sp = Math.hypot(p.vx, p.vy) || 1;
-      const tgt = (62 + 92 * state.T) * p.wob;
-      let ns = sp + (tgt - sp) * Math.min(1, dt * 1.1);
-      ns = Math.max(28, Math.min(215, ns));
+      const tgt = (62 + 175 * state.T) * p.wob;
+      let ns = sp + (tgt - sp) * Math.min(1, dt * 1.6);
+      ns = Math.max(28, Math.min(320, ns));
       p.vx *= ns / sp;
       p.vy *= ns / sp;
     }
@@ -294,30 +295,6 @@
     ctx.beginPath();
     ctx.arc(x - PR * 0.38, y - PR * 0.44, PR * 0.22, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(255,255,255,0.8)";
-    ctx.fill();
-  }
-
-  function drawArrow(p) {
-    const sp = Math.hypot(p.vx, p.vy);
-    if (sp === 0) return;
-    const ux = p.vx / sp, uy = p.vy / sp;
-    const from = PR + 3;
-    const len = 16 + sp * 0.22;          // faster particle -> longer arrow
-    const x1 = p.x + ux * (from + len), y1 = p.y + uy * (from + len);
-    const hl = 9, hw = 4.5;              // arrowhead length / half-width
-    ctx.strokeStyle = "#1f1f1f";
-    ctx.fillStyle = "#1f1f1f";
-    ctx.lineWidth = 2.2;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(p.x + ux * from, p.y + uy * from);
-    ctx.lineTo(x1 - ux * hl, y1 - uy * hl);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x1 - ux * hl - uy * hw, y1 - uy * hl + ux * hw);
-    ctx.lineTo(x1 - ux * hl + uy * hw, y1 - uy * hl - ux * hw);
-    ctx.closePath();
     ctx.fill();
   }
 
@@ -416,14 +393,7 @@
     ctx.lineWidth = 3;
     ctx.strokeStyle = "#a3a9b1";
     ctx.stroke();
-    // clip to the interior so arrows never poke through the wall
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(CX, CY, R - 1.5, 0, Math.PI * 2);
-    ctx.clip();
     for (const p of parts) drawBall(p.x, p.y);
-    for (const p of parts) drawArrow(p);
-    ctx.restore();
     // green callout only while the temperature is being raised
     if (calloutTimer > 0) {
       drawCallout("متوسط الطاقة الحركية يزداد", "#059669", Math.min(1, calloutTimer / 0.35));
