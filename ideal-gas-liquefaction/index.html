@@ -240,7 +240,8 @@
     dragging: false,
     dragWant: REST,
     keyDir: 0,            // -1 up / +1 down (arrow keys)
-    condensed: 0,         // 0..1 fraction of gas turned liquid
+    condensed: 0,         // 0..1 progress of the condensation transition
+    share: 0.55,          // equilibrium fraction of particles that are liquid
     liqOn: false,         // hysteresis latch for liquefaction
     hasDragged: false,
     hintAlpha: 1,
@@ -251,7 +252,7 @@
   // cooling is essential, pressure helps (a gas above its critical
   // temperature cannot be liquefied by pressure alone)
   const liqScore = () => coldness() + 0.55 * pressureFrac();
-  const poolH = () => state.condensed * POOL_MAX;
+  const poolH = () => state.condensed * POOL_MAX * (state.share / 0.97);
   const surfaceY = () => innerB - poolH();
 
   // ---- Particles ----
@@ -325,8 +326,12 @@
       state.condensed = Math.max(0, Math.min(1, state.condensed + d));
     }
 
-    // keep ~15% of particles as vapour above the liquid
-    const nCap = Math.round(N * 0.85 * state.condensed);
+    // equilibrium share: at a fixed low temperature, pushing the piston
+    // condenses more of the vapour and releasing it re-evaporates some liquid
+    const k = Math.max(0, Math.min(1, (liqScore() - 0.92) / (1.55 - 0.92)));
+    state.share += (0.55 + 0.42 * k - state.share) * Math.min(1, dt * 2.5);
+
+    const nCap = Math.round(N * state.share * state.condensed);
     let captured = parts.filter(p => p.st !== "gas").length;
     while (captured < nCap) {
       let pick = null;
@@ -362,8 +367,10 @@
     const liqTop = Math.min(surf + GR, innerB - GR);
     bonds.length = 0;
 
-    // pairwise attraction between free particles (real gas only)
+    // pairwise attraction between free particles (real gas only);
+    // fades once condensed so the leftover dilute vapour doesn't clump mid-air
     if (state.mode === "real") {
+      const att = 1 - 0.8 * state.condensed;
       for (let i = 0; i < parts.length; i++) {
         const a = parts[i];
         if (a.st !== "gas") continue;
@@ -374,7 +381,7 @@
           const d = Math.hypot(dx, dy);
           if (d < 70 && d > 0.001) {
             // soft repulsion when overlapping, gentle attraction otherwise
-            const f = d < 16 ? -130 * (1 - d / 16) : 26 * (1 - d / 70);
+            const f = d < 16 ? -130 * (1 - d / 16) : 26 * (1 - d / 70) * att;
             const ax = (dx / d) * f * dt, ay = (dy / d) * f * dt;
             a.vx += ax; a.vy += ay;
             b.vx -= ax; b.vy -= ay;
@@ -791,6 +798,7 @@
     state.dragging = false;
     state.keyDir = 0;
     state.condensed = 0;
+    state.share = 0.55;
     state.liqOn = false;
     drops.length = 0;
     initParts();
