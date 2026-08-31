@@ -327,6 +327,18 @@
     ctx.closePath();
   }
 
+  function drawCallout(msg, color) {
+    ctx.font = "800 21px Tajawal, sans-serif";
+    ctx.textAlign = "center";
+    const mw = ctx.measureText(msg).width + 30;
+    const bx = cx, by = rimY - 62;
+    ctx.fillStyle = color;
+    roundRect(bx - mw / 2, by - 24, mw, 36, 10);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.fillText(msg, bx, by + 2);
+  }
+
   function drawArrow(x, yTop, yBot) {
     ctx.strokeStyle = "#e11d48";
     ctx.fillStyle = "#e11d48";
@@ -433,18 +445,11 @@
       drawArrow(innerL + innerW * 0.74, yB - 40, yB);
     }
 
-    // "does not compress" callout for the solid
+    // state callouts: red for the rigid solid, green once the gas visibly shrinks
     if (state.mode === "solid" && state.shake > 0.55) {
-      ctx.font = "800 21px Tajawal, sans-serif";
-      ctx.textAlign = "center";
-      const msg = "لا ينضغط!";
-      const mw = ctx.measureText(msg).width + 30;
-      const bx = cx, by = rimY - 62;
-      ctx.fillStyle = "#dc2626";
-      roundRect(bx - mw / 2, by - 24, mw, 36, 10);
-      ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.fillText(msg, bx, by + 2);
+      drawCallout("لا ينضغط!", "#dc2626");
+    } else if (state.mode === "gas" && (plateBot - GAS_REST) / (GAS_MAX - GAS_REST) > 0.4) {
+      drawCallout("ينضغط بسهولة!", "#059669");
     }
   }
 
