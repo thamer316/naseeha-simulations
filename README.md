@@ -12,7 +12,7 @@
 ## الاستخدام داخل درس
 
 ```html
-<iframe src="https://thamer316.github.io/naseeha-sims/gas-compression/"
+<iframe src="https://thamer316.github.io/naseeha-simulations/gas-compression/"
         style="width:100%;max-width:680px;height:840px;border:0;display:block;margin:auto;"
         loading="lazy" title="محاكاة قابلية الانضغاط"></iframe>
 ```

@@ -7,7 +7,7 @@ alwaysApply: true
 
 محاكيات تعليمية قصيرة تُعرض للطلاب داخل دروس موقع الدورات
 (naseehamath.com) عبر `iframe`. الاستضافة على GitHub Pages من مستودع
-`thamer316/naseeha-sims` (اسم المجلد المحلي مختلف — لا تغيّر الريموت).
+`thamer316/naseeha-simulations`.
 
 ## البنية
 
@@ -31,13 +31,13 @@ alwaysApply: true
    أوقف خادم python نفسه بعد الانتهاء (قتل غلاف PowerShell لا يكفي).
 2. commit إلى `main` ثم push — تنشر GitHub Pages تلقائياً (build_type: legacy).
 3. تحقق من اكتمال النشر:
-   `gh api repos/thamer316/naseeha-sims/pages/builds/latest` حتى `status: built`
-   (على أجهزة بلا gh على PATH استخدم نسخة gh.exe محلية إنوجدت).
-4. الرابط الحي: `https://thamer316.github.io/naseeha-sims/<sim-folder>/`.
+   `gh api repos/thamer316/naseeha-simulations/pages/builds/latest` حتى `status: built`
+   (على أجهزة بلا gh على PATH استخدم نسخة gh.exe محلية إن وجدت).
+4. الرابط الحي: `https://thamer316.github.io/naseeha-simulations/<sim-folder>/`.
 5. سلّم المستخدم كود التضمين الجاهز:
 
 ```html
-<iframe src="https://thamer316.github.io/naseeha-sims/<sim-folder>/"
+<iframe src="https://thamer316.github.io/naseeha-simulations/<sim-folder>/"
         style="width:100%;max-width:680px;height:900px;border:0;display:block;margin:auto;"
         loading="lazy" title="<عنوان المحاكاة>"></iframe>
 ```
