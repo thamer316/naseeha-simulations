@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>إسالة الغاز الحقيقي — محاكاة تفاعلية</title>
+<title>الغاز الحقيقي — محاكاة تفاعلية</title>
 <meta name="description" content="محاكاة تفاعلية توضح إسالة الغاز الحقيقي بخفض درجة الحرارة وزيادة الضغط بفعل قوى التجاذب بين جسيماته، بعكس الغاز المثالي الذي لا يسال">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -70,28 +70,6 @@
     gap: 10px;
     margin: 8px 0 2px;
   }
-  .mode-seg {
-    display: inline-flex;
-    border: 2px solid #cbd8e6;
-    border-radius: 14px;
-    overflow: hidden;
-    background: #fff;
-  }
-  .seg-btn {
-    border: 0;
-    background: transparent;
-    padding: 11px 18px;
-    font-family: inherit;
-    font-size: 16px;
-    font-weight: 800;
-    color: #47617e;
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-    transition: background .15s ease, color .15s ease;
-  }
-  #btnIdeal.active { background: linear-gradient(180deg, #8b5cf6, #7c3aed); color: #fff; }
-  #btnReal.active { background: linear-gradient(180deg, #0ea5e9, #0284c7); color: #fff; }
   .reset-btn {
     border: 2px solid #cbd8e6;
     background: #fff;
@@ -104,6 +82,12 @@
     cursor: pointer;
   }
   .reset-btn:hover { background: #f3f7fb; }
+  .reset-btn.paused {
+    background: linear-gradient(180deg, #34d399, #059669);
+    border-color: #059669;
+    color: #fff;
+  }
+  .reset-btn.paused:hover { background: linear-gradient(180deg, #2dd48f, #04895f); }
   /* temperature slider */
   .temp-wrap {
     display: flex;
@@ -175,8 +159,8 @@
 <body>
 <main class="card">
   <header>
-    <h1>إسالة الغاز الحقيقي</h1>
-    <p class="subtitle">برّد الغاز وزِد الضغط عليه بالمكبس… هل يتحوّل إلى سائل؟</p>
+    <h1>الغاز الحقيقي</h1>
+    <p class="subtitle">برّد الغاز وزِد الضغط عليه بالمكبس</p>
   </header>
 
   <div class="stage">
@@ -184,10 +168,7 @@
   </div>
 
   <div class="controls">
-    <div class="mode-seg" role="group" aria-label="نوع الغاز">
-      <button type="button" class="seg-btn active" id="btnReal">غاز حقيقي</button>
-      <button type="button" class="seg-btn" id="btnIdeal">غاز مثالي</button>
-    </div>
+    <button class="reset-btn" id="pauseBtn">إيقاف</button>
     <button class="reset-btn" id="resetBtn">إعادة</button>
   </div>
 
@@ -754,24 +735,27 @@
   }
 
   // ---- Interaction ----
-  const btnIdeal = document.getElementById("btnIdeal");
-  const btnReal = document.getElementById("btnReal");
+  const pauseBtn = document.getElementById("pauseBtn");
   const resetBtn = document.getElementById("resetBtn");
   const tempSlider = document.getElementById("tempSlider");
 
-  // switching modes keeps temperature and pressure: same conditions, different gas
-  function setMode(m) {
-    state.mode = m;
-    btnIdeal.classList.toggle("active", m === "ideal");
-    btnReal.classList.toggle("active", m === "real");
+  // pause/play: freezes the motion so the teacher can explain over a still frame
+  let paused = false;
+  function setPaused(p) {
+    paused = p;
+    pauseBtn.textContent = paused ? "تشغيل" : "إيقاف";
+    pauseBtn.classList.toggle("paused", paused);
   }
-  btnIdeal.addEventListener("click", () => setMode("ideal"));
-  btnReal.addEventListener("click", () => setMode("real"));
+  pauseBtn.addEventListener("click", () => setPaused(!paused));
+
+  // the sim is fixed on the real gas; setMode stays for the debug hook
+  function setMode(m) { state.mode = m; }
 
   tempSlider.addEventListener("input", () => { state.T = tempSlider.value / 100; });
 
   function resetAll() {
     setMode("real");
+    setPaused(false);
     state.T = 0.78;
     tempSlider.value = 78;
     state.plateBot = REST;
@@ -840,19 +824,24 @@
   window.addEventListener("blur", () => { state.keyDir = 0; state.dragging = false; });
 
   // debug/inspection hook
-  window.__sim = { state, parts, setMode, resetAll };
+  window.__sim = { state, parts, setMode, resetAll, setPaused };
 
   // ---- Main loop ----
+  // simT advances only while playing, so pausing freezes waves/flakes too;
+  // draw still runs every frame so UI changes (mode, thermometer) stay live
   let last = performance.now();
+  let simT = 0;
   function frame(now) {
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
-    const t = now / 1000;
-    const pv = updatePiston(dt);
-    updateCondensation(dt);
-    updateParts(dt, pv);
-    updateDrops(dt);
-    draw(t);
+    if (!paused) {
+      simT += dt;
+      const pv = updatePiston(dt);
+      updateCondensation(dt);
+      updateParts(dt, pv);
+      updateDrops(dt);
+    }
+    draw(simT);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
